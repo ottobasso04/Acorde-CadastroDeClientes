@@ -1,0 +1,12 @@
+{
+  "expo": {
+    "name": "Acorde Cadastro",
+    "slug": "acorde-cadastro",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "light",
+    "web": {
+      "bundler": "metro"
+    }
+  }
+}
