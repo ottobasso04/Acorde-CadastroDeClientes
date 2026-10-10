@@ -1,17 +1,14 @@
 import { KeyboardAvoidingView, Platform, ScrollView, StyleSheet, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-import { colors, contentMaxWidth, spacing } from "../styles/theme";
+import { colors, contentMaxWidth, spacing, wideMaxWidth } from "../styles/theme";
 
-export default function ScreenScroll({ children, hasHeader = true }) {
+export default function ScreenScroll({ children, hasHeader = true, wide = false }) {
   return (
     <SafeAreaView style={styles.safe} edges={hasHeader ? ["bottom", "left", "right"] : undefined}>
-      <KeyboardAvoidingView
-        style={styles.flex}
-        behavior={Platform.OS === "ios" ? "padding" : undefined}
-      >
+      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
         <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
-          <View style={styles.content}>{children}</View>
+          <View style={[styles.content, { maxWidth: wide ? wideMaxWidth : contentMaxWidth }]}>{children}</View>
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
@@ -32,7 +29,6 @@ const styles = StyleSheet.create({
   },
   content: {
     width: "100%",
-    maxWidth: contentMaxWidth,
     alignSelf: "center",
   },
 });

@@ -1,45 +1,18 @@
-# Acorde Cadastro: React Native com Expo e backend próprio
+# Acorde: loja de música com cadastro, estoque e assistente com Gemini
 
-Aplicação didática para a **área de cadastro de uma loja online de instrumentos e produtos de música**. Um funcionário da loja cria uma conta, entra e passa a cadastrar, consultar, editar e excluir clientes.
+Produto funcional de uma **loja online de instrumentos e produtos de música**, com duas áreas separadas desde a tela de login:
+
+- **Cliente**: cria a conta com endereço buscado pelo CEP e várias categorias de interesse, compra na loja (117 itens, do mais barato ao mais caro) e usa o **assistente de compras com o Gemini**, que compara preço e desempenho dos produtos da categoria dele.
+- **Administrador**: gerencia clientes, consulta o estoque, cadastra novas mercadorias, registra entradas e vê relatórios de vendas por dia, itens mais vendidos e entradas e saídas de estoque, com uma **análise escrita pelo Gemini**.
 
 O projeto tem duas partes:
 
-- `app/`: o aplicativo, feito com **React Native**, **Expo**, **React Navigation** e **Axios**.
-- `backend/`: uma **API REST em Node.js** com banco de dados **SQLite** próprio. Ela substitui as APIs de demonstração (ReqRes e MockAPI) usadas no tutorial de referência.
+- `app/`: interface feita com **React Native** e **Expo** (funciona no navegador e no celular).
+- `backend/`: **API REST em Node.js** com banco **SQLite** próprio, regras de negócio, validações e a integração com o Gemini.
 
-Este README explica como rodar e como cada parte funciona.
+## 1. Como rodar
 
-## 1. O que a aplicação faz
-
-1. O usuário cria uma conta ou informa e-mail e senha na tela de login.
-2. O app envia os dados para a API do projeto (`backend/`).
-3. A API confere a senha e devolve um token, que é salvo no aparelho.
-4. O usuário acessa a tela inicial, que mostra um resumo do cadastro.
-5. Na tela de clientes, pode buscar por nome, editar e excluir registros.
-6. No formulário, pode cadastrar nome, e-mail, telefone, endereço e a categoria de instrumento de interesse.
-
-Os dados ficam no arquivo `backend/data/acorde.db`. Eles continuam lá quando o app e o servidor são fechados.
-
-## 2. Tecnologias utilizadas
-
-| Parte | Tecnologia | Para que serve |
-| --- | --- | --- |
-| App | React Native | telas para Android, iOS e Web |
-| App | Expo (SDK 57) | executar e testar o aplicativo |
-| App | React Navigation | navegação entre telas |
-| App | Axios | requisições HTTP |
-| App | AsyncStorage | guardar o token de login no aparelho |
-| Backend | Node.js (`node:http`) | servidor da API |
-| Backend | SQLite (`node:sqlite`) | banco de dados em um arquivo |
-| Backend | `node:crypto` | hash das senhas e assinatura do token (JWT) |
-
-O backend não tem dependências externas: usa só módulos que já vêm com o Node. Por isso ele não precisa de `npm install`.
-
-## 3. Preparando o ambiente
-
-É necessário ter **Node.js 22.13 ou mais novo** (o módulo de SQLite só existe a partir dessa versão). Confira com `node -v`.
-
-Abra **dois terminais**, um para cada parte.
+É necessário o **Node.js 22.13 ou mais novo** (`node -v`). Abra dois terminais.
 
 **Terminal 1: API**
 
@@ -48,9 +21,9 @@ cd backend
 npm start
 ```
 
-O terminal mostra o endereço da API (porta 3333). Na primeira execução, o banco é criado com uma conta de demonstração e quatro clientes de exemplo.
+Na primeira execução o banco é criado com o catálogo, os clientes de exemplo e 30 dias de histórico de vendas, para os relatórios já terem dados.
 
-**Terminal 2: aplicativo**
+**Terminal 2: interface**
 
 ```bash
 cd app
@@ -58,320 +31,248 @@ npm install
 npm run web
 ```
 
-`npm run web` abre o app no navegador. Para usar o celular, rode `npm start` e leia o QR Code com o Expo Go. O celular e o computador precisam estar na mesma rede Wi-Fi.
+Para usar no celular, rode `npm start` e leia o QR Code com o Expo Go (celular e computador na mesma rede Wi-Fi).
 
-O app descobre sozinho o endereço da API (o mesmo computador que está rodando o Expo, porta 3333). Só é preciso configurar algo se a API estiver em outro lugar: veja `app/.env.example`.
+### Contas de demonstração
 
-## 4. Conta de demonstração
-
-```
-E-mail: demo@acorde.com
-Senha:  acorde123
-```
-
-Ela é criada pelo backend na primeira execução. Também é possível criar contas novas pela tela **Criar uma conta**: elas são gravadas no banco, com a senha protegida por hash.
-
-## 5. Estrutura do projeto
-
-```
-.
-├── app/                               # aplicativo Expo
-│   ├── App.js                         # ponto de entrada do aplicativo
-│   ├── index.js                       # inicialização do Expo
-│   ├── .env.example                   # modelo da variável com a URL da API
-│   └── src/
-│       ├── components/
-│       │   ├── AppButton.js           # botão com estado de carregamento
-│       │   ├── ClientItem.js          # visual de um cliente da lista
-│       │   ├── ConfirmModal.js        # janela de confirmação
-│       │   ├── FormField.js           # rótulo + campo + mensagem de erro
-│       │   ├── InstrumentPicker.js    # escolha da categoria de instrumento
-│       │   ├── MessageBanner.js       # mensagem de sucesso ou erro na tela
-│       │   └── ScreenScroll.js        # estrutura comum das telas com formulário
-│       ├── contexts/
-│       │   └── AuthContext.js         # estado global de autenticação
-│       ├── navigation/
-│       │   ├── AppNavigator.js        # telas disponíveis após o login
-│       │   ├── AuthNavigator.js       # telas disponíveis sem login
-│       │   └── RootNavigator.js       # escolhe o navegador correto
-│       ├── screens/
-│       │   ├── ClientFormScreen.js    # cadastro e edição de cliente
-│       │   ├── ClientsListScreen.js   # consulta, busca e exclusão
-│       │   ├── HomeScreen.js          # tela inicial com o resumo
-│       │   ├── LoginScreen.js         # formulário de login
-│       │   └── RegisterScreen.js      # criação de conta
-│       ├── services/
-│       │   ├── api.js                 # cliente Axios, URL da API e erros
-│       │   ├── authApi.js             # requisições de conta
-│       │   └── clientsApi.js          # operações com clientes
-│       ├── styles/
-│       │   └── theme.js               # cores, espaçamentos e bordas
-│       └── utils/
-│           ├── instruments.js         # categorias de instrumento
-│           └── validators.js          # validações e máscara de telefone
-└── backend/                           # API REST
-    ├── .env.example                   # modelo das variáveis de ambiente
-    ├── src/
-    │   ├── server.js                  # ponto de entrada da API
-    │   ├── config.js                  # porta, chave do token e arquivo do banco
-    │   ├── database.js                # conexão, tabelas e dados iniciais
-    │   ├── router.js                  # roteador HTTP (rotas, JSON, CORS, erros)
-    │   ├── security.js                # hash de senha e token JWT
-    │   ├── validators.js              # validação dos dados recebidos
-    │   ├── middleware/
-    │   │   └── requireAuth.js         # exige token nas rotas protegidas
-    │   └── routes/
-    │       ├── authRoutes.js          # criar conta, login e usuário atual
-    │       └── clientRoutes.js        # CRUD de clientes
-    └── test/
-        └── api.test.js                # testes automatizados da API
-```
-
-## 6. Como o login funciona
-
-### 6.1 Entrada da aplicação
-
-Em `App.js`, o `AuthProvider` envolve o `RootNavigator`:
-
-```jsx
-<AuthProvider>
-  <RootNavigator />
-</AuthProvider>
-```
-
-O provider disponibiliza `token`, `user`, `loading`, `signIn`, `signUp` e `signOut` para qualquer tela, através do hook `useAuth()`.
-
-### 6.2 Escolha da navegação
-
-`RootNavigator.js` olha para o token:
-
-- enquanto confere o armazenamento local: mostra um indicador de carregamento;
-- sem token: mostra o `AuthNavigator` (login e criação de conta);
-- com token: mostra o `AppNavigator` (área de cadastro).
-
-Nenhuma tela "navega para o login". Quando o token muda no contexto, a navegação troca sozinha. Isso impede que a área de clientes apareça antes da autenticação.
-
-### 6.3 O caminho do token no app
-
-Quando o usuário toca em **Entrar**:
-
-1. `LoginScreen` valida os campos e chama `signIn` do contexto;
-2. `AuthContext` chama `login`, de `authApi.js`;
-3. `authApi.js` faz `POST /auth/login` na API;
-4. o token devolvido é configurado no Axios (`setAuthToken`), para ir em todas as próximas requisições;
-5. token e usuário são salvos com `AsyncStorage.setItem`;
-6. o estado muda com `setToken` e o `RootNavigator` mostra a área logada.
-
-Ao reabrir o app, o `AuthContext` lê o token salvo e chama `GET /auth/me` para confirmar que ele ainda vale. Ao tocar em **Sair**, o token é removido do estado e do `AsyncStorage`.
-
-Se a API responder `401` durante o uso (token vencido), um interceptor do Axios em `api.js` chama o `signOut` e o usuário volta para o login.
-
-### 6.4 O que acontece no servidor
-
-- **Senha**: nunca é salva em texto puro. `security.js` gera um hash com `scrypt` e um sal aleatório; no login, o hash da senha digitada é comparado com o hash guardado.
-- **Token**: é um JWT assinado com HMAC-SHA256 e válido por 7 dias. A assinatura usa uma chave que só o servidor conhece (`JWT_SECRET`), então um token alterado é recusado.
-- **Rotas protegidas**: `requireAuth.js` lê o cabeçalho `Authorization: Bearer <token>`, confere o token e só então deixa a rota executar.
-
-## 7. Como os clientes são armazenados
-
-As requisições ficam separadas das telas. `src/services/api.js` cria o cliente Axios com a URL base; `clientsApi.js` tem uma função para cada operação.
-
-| Operação | Método | URL | Objetivo |
-| --- | --- | --- | --- |
-| Listar | `GET` | `/clients` | Busca todos os clientes |
-| Buscar | `GET` | `/clients?search=ana` | Filtra por nome ou e-mail |
-| Detalhar | `GET` | `/clients/:id` | Busca um cliente pelo id |
-| Criar | `POST` | `/clients` | Insere um novo cliente |
-| Editar | `PUT` | `/clients/:id` | Atualiza um cliente |
-| Excluir | `DELETE` | `/clients/:id` | Remove um cliente |
-
-Rotas de conta: `POST /auth/register`, `POST /auth/login` e `GET /auth/me`.
-
-O corpo enviado no cadastro tem este formato:
-
-```json
-{
-  "name": "Ana Souza",
-  "email": "ana.souza@example.com",
-  "phone": "16991230001",
-  "address": "Rua das Palmeiras, 120 - Araraquara/SP",
-  "instrument": "Cordas"
-}
-```
-
-O banco cria o `id` e as datas de criação e de atualização. A tabela é definida em `database.js`:
-
-```sql
-CREATE TABLE clients (
-  id          INTEGER PRIMARY KEY AUTOINCREMENT,
-  name        TEXT NOT NULL,
-  email       TEXT NOT NULL UNIQUE,
-  phone       TEXT NOT NULL,
-  address     TEXT NOT NULL DEFAULT '',
-  instrument  TEXT NOT NULL DEFAULT '',
-  created_by  INTEGER REFERENCES users(id) ON DELETE SET NULL,
-  created_at  TEXT NOT NULL DEFAULT (datetime('now')),
-  updated_at  TEXT NOT NULL DEFAULT (datetime('now'))
-);
-```
-
-Quando a API recusa um pedido, responde com um status de erro e um JSON explicando o motivo:
-
-```json
-{
-  "message": "Já existe um cliente com este e-mail.",
-  "errors": { "email": "Este e-mail já está cadastrado." }
-}
-```
-
-O app mostra `message` em uma faixa e cada item de `errors` embaixo do campo correspondente.
-
-## 8. Cadastro e edição de um cliente
-
-`ClientFormScreen.js` serve para as duas operações. Se a rota recebe `clientId`, a tela busca o cliente com `GET /clients/:id`, preenche os campos e salva com `PUT`. Sem `clientId`, salva com `POST`.
-
-Cada campo tem o seu estado:
-
-```js
-const [name, setName] = useState("");
-const [email, setEmail] = useState("");
-const [phone, setPhone] = useState("");
-const [address, setAddress] = useState("");
-const [instrument, setInstrument] = useState("");
-```
-
-Ao salvar:
-
-1. a tela valida os campos com `validateClient` (nome, formato do e-mail, tamanho do telefone);
-2. chama `createClient` ou `updateClient`;
-3. espera a resposta da API com `await`;
-4. mostra a mensagem de sucesso, ou os erros devolvidos pelo servidor;
-5. permite voltar para a lista de clientes.
-
-O `await` é importante: a mensagem de sucesso só aparece depois que o servidor confirma a gravação. Enquanto a requisição está em andamento, o botão fica desabilitado e mostra um indicador, para evitar cadastro em dobro.
-
-A validação existe nos dois lados. No app ela dá resposta imediata ao usuário; no servidor ela protege o banco, porque qualquer programa pode chamar a API sem passar pelas telas.
-
-## 9. Lista, busca e exclusão
-
-`ClientsListScreen.js` chama `listClients()` dentro de um `useEffect` quando a tela aparece. A resposta fica no estado `clients` e é exibida por um `FlatList`. Durante a primeira carga aparece um `ActivityIndicator`, e a lista pode ser puxada para baixo para atualizar.
-
-**Busca.** O texto digitado fica no estado `search`. O mesmo `useEffect` depende desse estado e espera 400 ms depois da última tecla antes de chamar a API (debounce). A função de limpeza do efeito cancela a espera se o usuário continuar digitando. No servidor, a busca ignora maiúsculas e acentos: "jose" encontra "José".
-
-**Itens.** Cada cliente é renderizado pelo componente `ClientItem.js`, que recebe:
-
-- `client`: os dados do cliente;
-- `onEdit`: função chamada ao tocar em **Editar**;
-- `onDelete`: função chamada ao tocar em **Excluir**.
-
-**Exclusão.** Antes de excluir, a tela mostra o `ConfirmModal` com as opções **Cancelar** e **Excluir**. O `DELETE` só acontece depois da confirmação. Se a API responder com sucesso:
-
-1. o cliente é retirado do estado local;
-2. a lista se atualiza sem nova requisição;
-3. aparece a mensagem `Cliente excluído com sucesso.`
-
-## 10. Conceitos importantes e onde encontrá-los
-
-| Conceito | O que é | Onde ver |
+| Aba no login | E-mail | Senha |
 | --- | --- | --- |
-| Estado (`useState`) | valores que mudam durante o uso: campos, listas, mensagens | todas as telas; comece por `LoginScreen.js` |
-| Efeitos (`useEffect`) | ações ligadas ao ciclo de vida, com função de limpeza | `ClientsListScreen.js`, `ClientFormScreen.js`, `AuthContext.js` |
-| Context API | estado compartilhado sem passar props de tela em tela | `AuthContext.js` e o hook `useAuth()` |
-| Promises e `async/await` | requisições assíncronas com `try/catch/finally` | `handleSave` em `ClientFormScreen.js` |
-| Componentes reutilizáveis | peças usadas em várias telas, configuradas por props | pasta `components/` |
-| Navegação | pilhas de telas e passagem de parâmetros | pasta `navigation/` |
-| Camada de serviços | URLs e Axios fora das telas | pasta `services/` |
-| Armazenamento local | dados que permanecem no aparelho | `AsyncStorage` em `AuthContext.js` |
-| API REST | métodos HTTP, status e JSON | `backend/src/routes/` |
-| Banco de dados | tabelas, SQL e parâmetros seguros | `backend/src/database.js` e `clientRoutes.js` |
-| Autenticação | hash de senha, token e rotas protegidas | `backend/src/security.js` e `requireAuth.js` |
+| Sou cliente | `cliente@acorde.com` | `acorde123` |
+| Administrador | `admin@acorde.com` | `acorde123` |
 
-### CRUD completo
+A tela de login tem o botão **Usar a conta de demonstração**, que preenche a conta da aba escolhida. Uma conta de cliente não entra pela aba de administrador, e o contrário também é recusado.
 
-- **Create**: cadastrar cliente (`POST /clients`);
-- **Read**: listar, buscar e detalhar (`GET /clients`, `GET /clients/:id`);
-- **Update**: editar cliente (`PUT /clients/:id`);
-- **Delete**: excluir cliente (`DELETE /clients/:id`).
+Quem já usava a versão anterior não perde nada: ao iniciar, o backend atualiza o banco sozinho. A conta antiga `demo@acorde.com` vira administradora e os endereços e instrumentos dos clientes são convertidos para os novos campos.
 
-## 11. Exercícios do tutorial de referência
+### Ativando o Gemini
 
-Os oito exercícios propostos no tutorial original já estão resolvidos aqui:
+1. Crie uma chave em [Google AI Studio](https://aistudio.google.com/apikey).
+2. Copie `backend/.env.example` para `backend/.env`.
+3. Preencha `GEMINI_API_KEY=` com a chave e reinicie o backend.
 
-| Exercício | Onde está |
+O terminal mostra `Gemini: ativo (modelo gemini-flash-latest)`. Sem a chave, o assistente e a análise continuam funcionando em **modo local**, com regras calculadas pela própria API, e a tela avisa isso. O arquivo `.env` está no `.gitignore`, então a chave não vai para o GitHub.
+
+## 2. Funcionalidades
+
+### Área do cliente
+
+| Tela | O que faz |
 | --- | --- |
-| 1. Campo de endereço no formulário e no payload | `ClientFormScreen.js`, coluna `address` no banco |
-| 2. Edição de cliente com `PUT` | `ClientFormScreen.js`, `updateClient`, `PUT /clients/:id` |
-| 3. Busca por nome na lista | `ClientsListScreen.js`, `GET /clients?search=` |
-| 4. Botão de salvar desabilitado durante a requisição | prop `loading` de `AppButton.js` |
-| 5. Estilos com `StyleSheet.create` | todos os componentes e telas, com `styles/theme.js` |
-| 6. Validação de e-mail e tamanho do telefone | `utils/validators.js` e `backend/src/validators.js` |
-| 7. Indicador de carregamento na busca de clientes | `ActivityIndicator` em `ClientsListScreen.js` |
-| 8. URL da API em variável de ambiente | `EXPO_PUBLIC_API_URL` em `services/api.js` |
+| Criar conta | dados pessoais, **endereço por CEP** (rua, número, complemento, bairro, cidade e UF em campos separados) e **várias categorias de interesse** |
+| Início | saudação, interesses do cliente e atalhos para loja, carrinho, pedidos e cadastro |
+| Loja | 117 produtos em 14 categorias, do mais barato ao mais caro; busca, filtro por categoria e ordenação |
+| Assistente de compras | o cliente escolhe categorias (já vêm marcadas as dele), orçamento e o que procura; o Gemini devolve o **melhor preço**, o **melhor desempenho** e o **melhor custo-benefício**, com o motivo de cada escolha |
+| Carrinho | quantidade por item, total e finalização do pedido |
+| Meus pedidos | histórico com itens e valores |
+| Meu cadastro | edição do endereço e dos interesses |
 
-Sugestões para continuar praticando:
+### Área do administrador
 
-1. Adicione um campo de CPF, com máscara e validação.
-2. Crie um filtro por categoria de instrumento na lista.
-3. Mostre a data de cadastro em `ClientItem`.
-4. Crie uma tela de perfil para trocar o nome do usuário.
-5. Crie a tabela `products` e um CRUD de produtos da loja.
+A loja não aparece para o administrador. O menu dele tem:
 
-## 12. Testes automatizados
+| Tela | O que faz |
+| --- | --- |
+| Início | faturamento, pedidos, itens com estoque baixo e unidades em estoque dos últimos 7 dias |
+| Clientes | CRUD completo, com endereço por CEP e interesses |
+| Estoque e mercadorias | todos os itens com quantidade, filtro de estoque baixo, busca e categorias |
+| Mercadoria | detalhes, **registro de entrada de estoque** e histórico de movimentações |
+| Cadastrar nova mercadoria | nome, marca, categoria, nível, preço, quantidade inicial, estoque mínimo e descrição |
+| Relatórios e IA | **vendas por dia**, **entradas e saídas de estoque**, **itens mais vendidos**, vendas por categoria e estoque baixo, em 7, 15 ou 30 dias, mais a **análise do Gemini** |
 
-O backend tem testes que sobem a API com um banco em memória e chamam as rotas de verdade:
+### Catálogo
+
+As 14 categorias: Violões, Guitarras, Baixos, Ukulele e cavaquinho, Teclados e pianos, Baterias e percussão, Sopros, Cordas de arco, Amplificadores, Pedais e efeitos, Microfones, Áudio e gravação, DJ e produção, e Acessórios (cordas, palhetas, cabos, estantes, capotrastes, afinadores e outros).
+
+Cada categoria vai de opções de entrada a modelos profissionais. O item mais barato é uma palheta de R$ 4,90 e o mais caro é uma workstation de R$ 34.900,00.
+
+## 3. Arquitetura
+
+```
+┌──────────────────────────┐   HTTP + JSON    ┌────────────────────────────────┐
+│  App (React Native/Expo) │ ───────────────▶ │  API Node.js (node:http)       │
+│  telas, contexto, Axios  │ ◀─────────────── │  rotas → validação → regras    │
+└──────────────────────────┘   token JWT      │        │            │          │
+                                              │   SQLite (node:sqlite)          │
+                                              │        │            │          │
+                                              └────────┼────────────┼──────────┘
+                                                       ▼            ▼
+                                               ViaCEP / BrasilAPI   Gemini API
+```
+
+- O app nunca fala direto com o Gemini nem com o serviço de CEP. Tudo passa pela API, que guarda a chave, valida os dados e decide o que enviar.
+- O backend não tem dependências externas: usa só módulos que vêm com o Node (`node:http`, `node:sqlite`, `node:crypto`, `fetch`).
+
+### Estrutura de pastas
+
+```
+app/src
+├── components/      peças reutilizáveis (campos, endereço, gráfico, cartões de produto)
+├── contexts/        AuthContext (login e perfil) e CartContext (carrinho)
+├── navigation/      Auth, Customer e Admin: uma pilha de telas para cada perfil
+├── screens/
+│   ├── auth/        login com as duas abas e criação de conta
+│   ├── customer/    início, loja, assistente, carrinho, pedidos e cadastro
+│   └── admin/       início, clientes, estoque, mercadoria, nova mercadoria e relatórios
+├── services/        Axios e as funções de cada rota da API
+├── styles/          paleta de cores e espaçamentos
+└── utils/           categorias, formatação, validações e máscaras
+
+backend/src
+├── server.js        registra as rotas e sobe o servidor
+├── router.js        roteador HTTP (rotas, JSON, CORS e erros)
+├── database.js      tabelas, migração do banco antigo e dados iniciais
+├── catalog.js       categorias e os 117 produtos do catálogo inicial
+├── validators.js    validação de tudo que chega na API
+├── security.js      hash de senha (scrypt) e token JWT
+├── middleware/      exige login, exige perfil (admin/cliente) e limita as chamadas à IA
+├── routes/          auth, clientes, catálogo e estoque, pedidos, relatórios e IA
+└── services/        CEP, Gemini, recomendações e relatórios
+```
+
+### Banco de dados
+
+| Tabela | Conteúdo |
+| --- | --- |
+| `users` | contas de acesso, com `role` = `admin` ou `customer` |
+| `clients` | cadastro do cliente: telefone, CEP, rua, número, complemento, bairro, cidade, UF e interesses |
+| `products` | mercadorias: SKU, categoria, nível, preço em centavos, estoque e estoque mínimo |
+| `orders` e `order_items` | pedidos e itens, com nome e preço gravados no momento da compra |
+| `stock_movements` | cada entrada (estoque inicial, reposição) e saída (venda) |
+
+Os valores em dinheiro são guardados em **centavos** (inteiros) para não ter erro de arredondamento.
+
+## 4. Regras de negócio e validações
+
+**Contas e acesso**
+- Senha com hash `scrypt` e sal; token JWT válido por 7 dias.
+- Cada rota exige o perfil certo: cliente não acessa estoque nem relatórios (403), administrador não compra.
+- O login confere a aba escolhida: conta de cliente na aba de administrador é recusada, com a mensagem indicando a aba certa.
+
+**Cadastro**
+- Nome de 3 a 80 caracteres, e-mail válido e único, telefone com DDD (10 ou 11 dígitos), senha de 6 a 72 caracteres.
+- CEP com 8 dígitos, número obrigatório (aceita "S/N"), complemento opcional, UF válida.
+- Pelo menos uma categoria de interesse, todas do catálogo.
+- O e-mail de um cliente que tem conta não pode ser trocado pelo administrador, e esse cliente não pode ser excluído.
+
+**CEP**
+- A API consulta o ViaCEP e, se ele falhar, a BrasilAPI. CEP inexistente devolve 404; os dois serviços fora do ar devolvem 502 e o usuário preenche à mão.
+
+**Estoque e mercadorias**
+- Preço entre R$ 0,01 e R$ 500.000,00, com até 2 casas decimais; não aceita mercadoria repetida (mesmo nome e marca).
+- O SKU é gerado pela API a partir da categoria (ex.: `GUI-006`).
+- Toda alteração de quantidade vira uma movimentação: a quantidade inicial é uma entrada, a reposição é uma entrada e cada venda é uma saída.
+- O item é marcado como **estoque baixo** quando a quantidade fica no estoque mínimo ou abaixo dele.
+- Mercadoria pode ser tirada de venda sem ser apagada, para manter o histórico.
+
+**Pedidos**
+- De 1 a 20 produtos, até 10 unidades de cada.
+- O preço é sempre o do banco, nunca o enviado pelo app.
+- O pedido inteiro roda em uma **transação**: se um item estiver esgotado ou sem quantidade suficiente, nada é gravado e o estoque não muda.
+
+**IA**
+- Cada usuário pode fazer até 10 consultas à IA a cada 10 minutos (429 depois disso).
+- Orçamento válido, até 5 categorias e texto de até 200 caracteres.
+
+## 5. Integração com o Gemini
+
+### Assistente de compras (cliente)
+
+1. O app envia `POST /ai/recommendations` com categorias, orçamento e o que o cliente procura.
+2. A API busca no banco os produtos **à venda e com estoque** dessas categorias, dentro do orçamento.
+3. Monta o pedido ao Gemini com uma instrução de sistema (assistente de compras da loja, só pode escolher produtos da lista) e a lista em JSON.
+4. Chama `generateContent` pedindo **JSON com esquema definido** (`responseMimeType` e `responseSchema`).
+5. Confere a resposta: descarta produtos que não existem na lista, tipos inválidos e repetições.
+6. Devolve as recomendações com os dados atuais de cada produto, prontos para ir ao carrinho.
+
+### Análise de relatórios (administrador)
+
+1. O app envia `POST /ai/admin-report` com o período (7, 15 ou 30 dias).
+2. A API calcula os números no SQLite: vendas por dia, entradas e saídas, mais vendidos, categorias e estoque baixo.
+3. Envia esse resumo ao Gemini, que devolve `resumo`, `destaques`, `alertas` e `recomendacoes`.
+
+### Chamada à API
+
+```
+POST https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent
+x-goog-api-key: <GEMINI_API_KEY>
+
+{
+  "systemInstruction": { "parts": [{ "text": "Você é o assistente de compras da Acorde..." }] },
+  "contents": [{ "role": "user", "parts": [{ "text": "Categorias... Produtos disponíveis: [...]" }] }],
+  "generationConfig": {
+    "temperature": 0.4,
+    "responseMimeType": "application/json",
+    "responseSchema": { "type": "OBJECT", "properties": { "resumo": {...}, "recomendacoes": {...} } }
+  }
+}
+```
+
+Se não houver chave, se o Gemini demorar mais de 30 segundos ou se responder com erro, a API usa o **modo local**: escolhe o mais barato, o de nível mais alto e o de melhor relação nível/preço, ou calcula a análise com regras fixas. O campo `source` da resposta diz se veio do `gemini` ou do modo `local`.
+
+## 6. Rotas da API
+
+| Método | Rota | Quem usa | Para quê |
+| --- | --- | --- | --- |
+| POST | `/auth/register` | público | criar conta de cliente com endereço e interesses |
+| POST | `/auth/login` | público | entrar (`role`: `customer` ou `admin`) |
+| GET | `/auth/me` | logado | conferir o token |
+| GET | `/cep/:cep` | público | buscar endereço pelo CEP |
+| GET | `/categories` | público | categorias e níveis |
+| GET | `/products` | logado | listar com `search`, `category`, `sort`, `lowStock` |
+| GET | `/products/:id` | logado | detalhar mercadoria |
+| POST | `/products` | admin | cadastrar mercadoria |
+| PUT | `/products/:id` | admin | editar ou tirar de venda |
+| POST | `/products/:id/stock` | admin | registrar entrada de estoque |
+| GET | `/products/:id/movements` | admin | histórico de movimentações |
+| GET, POST, PUT, DELETE | `/clients` e `/clients/:id` | admin | CRUD de clientes |
+| POST | `/orders` | cliente | finalizar compra |
+| GET | `/orders` | logado | pedidos (cliente vê os dele; admin vê todos) |
+| GET, PUT | `/me/profile` | cliente | ver e editar o próprio cadastro |
+| GET | `/admin/dashboard?days=7` | admin | números dos relatórios |
+| GET | `/ai/status` | logado | se o Gemini está ativo |
+| POST | `/ai/recommendations` | cliente | assistente de compras |
+| POST | `/ai/admin-report` | admin | análise dos relatórios |
+
+Erros seguem sempre o mesmo formato, e o app mostra `message` em uma faixa e cada item de `errors` embaixo do campo:
+
+```json
+{ "message": "Confira os campos destacados.", "errors": { "cep": "Informe um CEP com 8 dígitos." } }
+```
+
+## 7. Conceitos de React Native usados
+
+| Conceito | Onde ver |
+| --- | --- |
+| `useState` e `useEffect` | todas as telas; busca com espera em `ShopScreen.js` e `StockScreen.js` |
+| Context API | `AuthContext.js` (login e perfil) e `CartContext.js` (carrinho) |
+| Navegação por perfil | `RootNavigator.js` escolhe Auth, Customer ou Admin |
+| Componentes reutilizáveis | `AddressFields`, `InterestPicker`, `BarChart`, `ProductCard` |
+| Axios e camada de serviços | `services/api.js` e `services/storeApi.js` |
+| AsyncStorage | token salvo em `AuthContext.js` |
+| Listas | `FlatList` na loja, no estoque e nos clientes |
+| Hook próprio | `utils/useFormErrors.js` limpa o erro do campo quando ele é editado |
+
+## 8. Testes
 
 ```bash
 cd backend
 npm test
 ```
 
-Eles cobrem login, criação de conta, proteção por token, o CRUD de clientes, a busca, as validações e o CORS.
+São 18 testes que sobem a API com banco em memória e cobrem: login por perfil, cadastro com endereço e interesses, CEP (com o serviço principal fora do ar), CRUD de clientes, catálogo com mais de 80 itens, cadastro de mercadoria, entrada de estoque, pedido com transação e falta de estoque, relatórios, as duas funções de IA com a resposta do Gemini simulada (incluindo produto inventado e erro do Gemini), limite de consultas e a migração do banco da versão anterior.
 
-## 13. Problemas comuns
+## 9. Problemas comuns
 
-### O backend não inicia e fala em versão do Node
+**O backend não inicia e fala em versão do Node.** O banco usa `node:sqlite`, disponível a partir do Node 22.13.
 
-O banco usa o módulo `node:sqlite`, disponível a partir do Node 22.13. Instale a versão LTS atual em https://nodejs.org.
+**O app mostra "Não foi possível conectar à API".** Abra o endereço mostrado na mensagem no navegador: deve aparecer `{"name":"Acorde API","status":"ok",...}`.
 
-### O app mostra "Não foi possível conectar à API"
+**Funciona no navegador, mas não no celular.** Os dois precisam estar na mesma rede; permita o Node.js no firewall do Windows. Em modo túnel, crie `app/.env` com `EXPO_PUBLIC_API_URL=http://SEU_IP:3333` e rode `npx expo start -c`.
 
-Confira se o terminal do backend está aberto e rodando. A mensagem mostra o endereço que o app tentou usar; abra esse endereço no navegador: deve aparecer `{"name":"Acorde Cadastro API","status":"ok"}`.
+**O assistente aparece em "modo local".** A chave do Gemini não está no `backend/.env`, ou o Gemini recusou a chamada. A faixa amarela na tela mostra o motivo.
 
-### Funciona no navegador, mas não no celular
+**O CEP não é encontrado.** Confira a internet do computador que roda o backend. Se ViaCEP e BrasilAPI estiverem fora do ar, preencha o endereço à mão.
 
-O celular precisa alcançar o computador pela rede:
+**Quero começar com o banco do zero.** Pare o backend, apague a pasta `backend/data` e inicie de novo.
 
-- os dois devem estar na mesma rede Wi-Fi;
-- o firewall do Windows pode bloquear a porta 3333: permita o acesso do Node.js em redes privadas quando o aviso aparecer;
-- se o Expo estiver em modo túnel (`--tunnel`), o app não consegue descobrir o IP do computador. Crie o arquivo `app/.env` com `EXPO_PUBLIC_API_URL=http://SEU_IP:3333` e reinicie com `npx expo start -c`.
-
-### O Expo Go diz que a versão do SDK é incompatível
-
-O projeto usa o Expo SDK 57. Se o seu Expo Go for mais novo, atualize o projeto:
-
-```bash
-cd app
-npx expo install expo@latest --fix
-```
-
-### A tela não abre ou fica com erro de módulo
-
-Confira os nomes de arquivos e pastas (maiúsculas e minúsculas fazem diferença). Depois limpe o cache:
-
-```bash
-npx expo start -c
-```
-
-### Quero começar com o banco vazio de novo
-
-Pare o backend, apague a pasta `backend/data` e inicie de novo. O banco é recriado com os dados iniciais.
-
-## 14. Próximos passos
-
-- publicar a API em um servidor e apontar o app para ela com `EXPO_PUBLIC_API_URL`;
-- trocar o SQLite por PostgreSQL ou MySQL;
-- adicionar perfis de acesso (administrador e vendedor);
-- cadastrar produtos e pedidos da loja;
-- adicionar testes para os componentes e telas do app.
-
-Este projeto é educacional e pode ser modificado livremente.
+Projeto educacional, pode ser modificado livremente.

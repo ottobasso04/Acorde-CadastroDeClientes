@@ -13,15 +13,20 @@ const config = require("./config");
 const { Router } = require("./router");
 const registerAuthRoutes = require("./routes/authRoutes");
 const registerClientRoutes = require("./routes/clientRoutes");
+const registerCatalogRoutes = require("./routes/catalogRoutes");
+const registerOrderRoutes = require("./routes/orderRoutes");
+const { isConfigured } = require("./services/geminiService");
 
 const router = new Router();
 
 router.get("/", async (req, res) => {
-  res.json(200, { name: "Acorde Cadastro API", status: "ok" });
+  res.json(200, { name: "Acorde API", status: "ok", gemini: isConfigured() ? "configurado" : "modo local" });
 });
 
 registerAuthRoutes(router);
 registerClientRoutes(router);
+registerCatalogRoutes(router);
+registerOrderRoutes(router);
 
 const server = http.createServer((req, res) => router.handle(req, res));
 
@@ -45,12 +50,17 @@ if (require.main === module) {
   });
 
   server.listen(config.port, "0.0.0.0", () => {
-    console.log("API do Acorde Cadastro no ar:");
+    console.log("API da Acorde no ar:");
     console.log(`  neste computador: http://localhost:${config.port}`);
     for (const address of localAddresses()) {
       console.log(`  na rede local:    http://${address}:${config.port}`);
     }
     console.log(`  banco de dados:   ${config.dbFile}`);
+    console.log(
+      isConfigured()
+        ? `  Gemini:           ativo (modelo ${config.geminiModel})`
+        : "  Gemini:           sem GEMINI_API_KEY no .env (o assistente usa o modo local)"
+    );
     if (config.usingDefaultSecret) {
       console.log("  aviso: usando a chave JWT padrão. Crie um arquivo .env antes de publicar.");
     }

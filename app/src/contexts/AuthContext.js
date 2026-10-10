@@ -23,16 +23,16 @@ export function AuthProvider({ children }) {
   }, []);
 
   const signIn = useCallback(
-    async (email, password) => {
-      const session = await login(email, password);
+    async (email, password, role) => {
+      const session = await login(email, password, role);
       await startSession(session);
     },
     [startSession]
   );
 
   const signUp = useCallback(
-    async (name, email, password) => {
-      const session = await register(name, email, password);
+    async (payload) => {
+      const session = await register(payload);
       await startSession(session);
     },
     [startSession]
@@ -45,6 +45,16 @@ export function AuthProvider({ children }) {
     await AsyncStorage.removeItem(TOKEN_KEY);
     await AsyncStorage.removeItem(USER_KEY);
   }, []);
+
+  const updateUser = useCallback(
+    async (changes) => {
+      if (!user) return;
+      const next = { ...user, ...changes };
+      setUser(next);
+      await AsyncStorage.setItem(USER_KEY, JSON.stringify(next));
+    },
+    [user]
+  );
 
   useEffect(() => {
     let active = true;
@@ -87,8 +97,8 @@ export function AuthProvider({ children }) {
   }, [signOut]);
 
   const value = useMemo(
-    () => ({ token, user, loading, signIn, signUp, signOut }),
-    [token, user, loading, signIn, signUp, signOut]
+    () => ({ token, user, loading, isAdmin: user?.role === "admin", signIn, signUp, signOut, updateUser }),
+    [token, user, loading, signIn, signUp, signOut, updateUser]
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -25,8 +25,10 @@ export const API_URL = resolveApiUrl();
 
 export const api = axios.create({
   baseURL: API_URL,
-  timeout: 10000,
+  timeout: 15000,
 });
+
+export const AI_TIMEOUT = 45000;
 
 let currentToken = null;
 

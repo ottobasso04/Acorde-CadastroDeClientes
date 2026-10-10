@@ -1,14 +1,20 @@
 import { Pressable, StyleSheet, Text, View } from "react-native";
 
 import { colors, radius, spacing } from "../styles/theme";
-import { instrumentIcon } from "../utils/instruments";
-import { formatPhone } from "../utils/validators";
+import { categoryIcon } from "../utils/categories";
+import { formatCep, formatPhone } from "../utils/validators";
 
 function initials(name) {
   const parts = String(name).trim().split(/\s+/);
   const first = parts[0]?.[0] ?? "";
   const last = parts.length > 1 ? parts[parts.length - 1][0] : "";
   return (first + last).toUpperCase();
+}
+
+function addressLine(client) {
+  if (!client.street) return "";
+  const complement = client.complement ? ` - ${client.complement}` : "";
+  return `${client.street}, ${client.number}${complement} · ${client.neighborhood}`;
 }
 
 export default function ClientItem({ client, onEdit, onDelete }) {
@@ -22,16 +28,30 @@ export default function ClientItem({ client, onEdit, onDelete }) {
           <Text style={styles.name}>{client.name}</Text>
           <Text style={styles.detail}>{client.email}</Text>
         </View>
+        {client.hasAccount ? (
+          <View style={styles.account}>
+            <Text style={styles.accountText}>conta na loja</Text>
+          </View>
+        ) : null}
       </View>
 
       <Text style={styles.detail}>{formatPhone(client.phone)}</Text>
-      {client.address ? <Text style={styles.detail}>{client.address}</Text> : null}
+      {client.street ? <Text style={styles.detail}>{addressLine(client)}</Text> : null}
+      {client.city ? (
+        <Text style={styles.detail}>
+          {client.city}/{client.state} · CEP {formatCep(client.cep)}
+        </Text>
+      ) : null}
 
-      {client.instrument ? (
-        <View style={styles.tag}>
-          <Text style={styles.tagText}>
-            {instrumentIcon(client.instrument)} {client.instrument}
-          </Text>
+      {client.interests.length > 0 ? (
+        <View style={styles.tags}>
+          {client.interests.map((name) => (
+            <View key={name} style={styles.tag}>
+              <Text style={styles.tagText}>
+                {categoryIcon(name)} {name}
+              </Text>
+            </View>
+          ))}
         </View>
       ) : null}
 
@@ -93,14 +113,29 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: colors.ink,
   },
+  account: {
+    paddingHorizontal: spacing.sm,
+    paddingVertical: 2,
+    borderRadius: radius.pill,
+    backgroundColor: colors.infoSoft,
+  },
+  accountText: {
+    fontSize: 11,
+    fontWeight: "700",
+    color: colors.info,
+  },
   detail: {
     fontSize: 14,
     lineHeight: 20,
     color: colors.muted,
   },
-  tag: {
-    alignSelf: "flex-start",
+  tags: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: spacing.xs,
     marginTop: spacing.sm,
+  },
+  tag: {
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
     borderRadius: radius.pill,

@@ -2,9 +2,11 @@ import { DefaultTheme, NavigationContainer } from "@react-navigation/native";
 import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../contexts/AuthContext";
+import { CartProvider } from "../contexts/CartContext";
 import { colors } from "../styles/theme";
-import AppNavigator from "./AppNavigator";
+import AdminNavigator from "./AdminNavigator";
 import AuthNavigator from "./AuthNavigator";
+import CustomerNavigator from "./CustomerNavigator";
 
 const navigationTheme = {
   ...DefaultTheme,
@@ -16,7 +18,7 @@ const navigationTheme = {
 };
 
 export default function RootNavigator() {
-  const { token, loading } = useAuth();
+  const { token, loading, isAdmin } = useAuth();
 
   if (loading) {
     return (
@@ -28,7 +30,15 @@ export default function RootNavigator() {
 
   return (
     <NavigationContainer theme={navigationTheme}>
-      {token ? <AppNavigator /> : <AuthNavigator />}
+      {!token ? (
+        <AuthNavigator />
+      ) : isAdmin ? (
+        <AdminNavigator />
+      ) : (
+        <CartProvider>
+          <CustomerNavigator />
+        </CartProvider>
+      )}
     </NavigationContainer>
   );
 }

@@ -1,15 +1,26 @@
 import { useEffect, useState } from "react";
 import { ActivityIndicator, StyleSheet, Text, View } from "react-native";
 
-import AppButton from "../components/AppButton";
-import FormField from "../components/FormField";
-import InstrumentPicker from "../components/InstrumentPicker";
-import MessageBanner from "../components/MessageBanner";
-import ScreenScroll from "../components/ScreenScroll";
-import { getErrorMessage, getFieldErrors } from "../services/api";
-import { createClient, getClient, updateClient } from "../services/clientsApi";
-import { colors, spacing } from "../styles/theme";
-import { formatPhone, hasErrors, onlyDigits, validateClient } from "../utils/validators";
+import AddressFields from "../../components/AddressFields";
+import AppButton from "../../components/AppButton";
+import FormField from "../../components/FormField";
+import InterestPicker from "../../components/InterestPicker";
+import MessageBanner from "../../components/MessageBanner";
+import ScreenScroll from "../../components/ScreenScroll";
+import SectionTitle from "../../components/SectionTitle";
+import { getErrorMessage, getFieldErrors } from "../../services/api";
+import { createClient, getClient, updateClient } from "../../services/clientsApi";
+import { colors, spacing } from "../../styles/theme";
+import {
+  addressFrom,
+  addressPayload,
+  emptyAddress,
+  formatPhone,
+  hasErrors,
+  onlyDigits,
+  validateClient,
+} from "../../utils/validators";
+import useFormErrors from "../../utils/useFormErrors";
 
 export default function ClientFormScreen({ navigation, route }) {
   const clientId = route.params?.clientId;
@@ -18,10 +29,11 @@ export default function ClientFormScreen({ navigation, route }) {
   const [name, setName] = useState("");
   const [email, setEmail] = useState("");
   const [phone, setPhone] = useState("");
-  const [address, setAddress] = useState("");
-  const [instrument, setInstrument] = useState("");
+  const [address, setAddress] = useState(emptyAddress);
+  const [interests, setInterests] = useState([]);
+  const [hasAccount, setHasAccount] = useState(false);
 
-  const [errors, setErrors] = useState({});
+  const { errors, setErrors, field, clearErrors } = useFormErrors();
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [loading, setLoading] = useState(editing);
@@ -30,7 +42,6 @@ export default function ClientFormScreen({ navigation, route }) {
 
   useEffect(() => {
     if (!editing) return;
-
     let active = true;
 
     async function loadClient() {
@@ -40,8 +51,9 @@ export default function ClientFormScreen({ navigation, route }) {
         setName(client.name);
         setEmail(client.email);
         setPhone(formatPhone(client.phone));
-        setAddress(client.address);
-        setInstrument(client.instrument);
+        setAddress(addressFrom(client));
+        setInterests(client.interests);
+        setHasAccount(client.hasAccount);
       } catch (requestError) {
         if (!active) return;
         setLoadFailed(true);
@@ -61,22 +73,23 @@ export default function ClientFormScreen({ navigation, route }) {
     setError("");
     setMessage("");
 
+    const found = validateClient({ name, email, phone, address, interests });
+    setErrors(found);
+    if (hasErrors(found)) return;
+
     const client = {
       name: name.trim(),
       email: email.trim(),
       phone: onlyDigits(phone),
-      address: address.trim(),
-      instrument,
+      ...addressPayload(address),
+      interests,
     };
-
-    const found = validateClient(client);
-    setErrors(found);
-    if (hasErrors(found)) return;
 
     setSaving(true);
     try {
       if (editing) {
-        await updateClient(clientId, client);
+        const saved = await updateClient(clientId, client);
+        setAddress(addressFrom(saved));
         setMessage("Cliente atualizado com sucesso.");
       } else {
         await createClient(client);
@@ -84,8 +97,8 @@ export default function ClientFormScreen({ navigation, route }) {
         setName("");
         setEmail("");
         setPhone("");
-        setAddress("");
-        setInstrument("");
+        setAddress(emptyAddress);
+        setInterests([]);
       }
     } catch (requestError) {
       setErrors(getFieldErrors(requestError));
@@ -115,59 +128,46 @@ export default function ClientFormScreen({ navigation, route }) {
   return (
     <ScreenScroll>
       <Text style={styles.intro}>
-        {editing
-          ? "Altere os dados e salve para atualizar o cadastro."
-          : "Preencha os dados do cliente. Nome, e-mail e telefone são obrigatórios."}
+        {editing ? "Altere os dados e salve para atualizar o cadastro." : "Preencha os dados do cliente. O endereço é completado a partir do CEP."}
       </Text>
 
-      <FormField
-        label="Nome completo"
-        value={name}
-        onChangeText={setName}
-        error={errors.name}
-        placeholder="Ex.: Ana Souza"
-        autoCapitalize="words"
-      />
+      <SectionTitle title="Dados do cliente" />
+      <FormField label="Nome completo" value={name} onChangeText={field("name", setName)} error={errors.name} placeholder="Ex.: Ana Souza" autoCapitalize="words" />
       <FormField
         label="E-mail"
         value={email}
-        onChangeText={setEmail}
+        onChangeText={field("email", setEmail)}
         error={errors.email}
         placeholder="cliente@exemplo.com"
         keyboardType="email-address"
         autoCapitalize="none"
         autoCorrect={false}
+        editable={!hasAccount}
+        hint={hasAccount ? "Este cliente tem conta na loja; o e-mail é o login dele." : undefined}
       />
       <FormField
         label="Telefone com DDD"
         value={phone}
-        onChangeText={(text) => setPhone(formatPhone(text))}
+        onChangeText={field("phone", (text) => setPhone(formatPhone(text)))}
         error={errors.phone}
         placeholder="(16) 99123-0001"
         keyboardType="phone-pad"
         maxLength={15}
       />
-      <FormField
-        label="Endereço de entrega (opcional)"
-        value={address}
-        onChangeText={setAddress}
-        error={errors.address}
-        placeholder="Rua, número, bairro, cidade/UF"
-        maxLength={200}
-        multiline
-        style={styles.address}
-      />
-      <InstrumentPicker value={instrument} onChange={setInstrument} />
-      {errors.instrument ? <Text style={styles.fieldError}>{errors.instrument}</Text> : null}
+
+      <SectionTitle title="Endereço" style={styles.section} />
+      <AddressFields value={address} onChange={(patch) => {
+          setAddress((current) => ({ ...current, ...patch }));
+          clearErrors(Object.keys(patch));
+        }} errors={errors} />
+
+      <SectionTitle title="Categorias de interesse" style={styles.section} />
+      <InterestPicker value={interests} onChange={field("interests", setInterests)} error={errors.interests} label="Interesses do cliente" />
 
       <MessageBanner type="success" message={message} />
-      <MessageBanner message={error} />
+      <MessageBanner message={error || (hasErrors(errors) ? "Confira os campos destacados." : "")} />
 
-      <AppButton
-        title={editing ? "Salvar alterações" : "Cadastrar cliente"}
-        onPress={handleSave}
-        loading={saving}
-      />
+      <AppButton title={editing ? "Salvar alterações" : "Cadastrar cliente"} onPress={handleSave} loading={saving} />
       <AppButton
         title="Ver lista de clientes"
         variant="outline"
@@ -192,15 +192,8 @@ const styles = StyleSheet.create({
     lineHeight: 22,
     color: colors.muted,
   },
-  address: {
-    minHeight: 72,
-    textAlignVertical: "top",
-  },
-  fieldError: {
-    marginTop: -spacing.sm,
-    marginBottom: spacing.lg,
-    fontSize: 13,
-    color: colors.danger,
+  section: {
+    marginTop: spacing.md,
   },
   button: {
     marginTop: spacing.md,

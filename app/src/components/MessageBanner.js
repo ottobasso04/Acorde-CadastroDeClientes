@@ -2,17 +2,23 @@ import { StyleSheet, Text, View } from "react-native";
 
 import { colors, radius, spacing } from "../styles/theme";
 
-export default function MessageBanner({ type = "error", message }) {
-  if (!message) return null;
+const TONES = {
+  error: { background: colors.dangerSoft, border: colors.danger, text: colors.danger },
+  success: { background: colors.successSoft, border: colors.success, text: colors.success },
+  info: { background: colors.infoSoft, border: colors.info, text: colors.info },
+  warning: { background: colors.accentSoft, border: colors.accent, text: colors.ink },
+};
 
-  const success = type === "success";
+export default function MessageBanner({ type = "error", message, style }) {
+  if (!message) return null;
+  const tone = TONES[type] ?? TONES.error;
 
   return (
     <View
       accessibilityRole="alert"
-      style={[styles.banner, success ? styles.success : styles.error]}
+      style={[styles.banner, { backgroundColor: tone.background, borderColor: tone.border }, style]}
     >
-      <Text style={[styles.text, success ? styles.successText : styles.errorText]}>{message}</Text>
+      <Text style={[styles.text, { color: tone.text }]}>{message}</Text>
     </View>
   );
 }
@@ -25,22 +31,9 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.md,
     marginBottom: spacing.lg,
   },
-  success: {
-    backgroundColor: colors.successSoft,
-    borderColor: colors.success,
-  },
-  error: {
-    backgroundColor: colors.dangerSoft,
-    borderColor: colors.danger,
-  },
   text: {
     fontSize: 14,
+    lineHeight: 20,
     fontWeight: "600",
-  },
-  successText: {
-    color: colors.success,
-  },
-  errorText: {
-    color: colors.danger,
   },
 });

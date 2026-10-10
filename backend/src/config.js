@@ -19,6 +19,11 @@ const config = {
   usingDefaultSecret: !process.env.JWT_SECRET,
   tokenTtlSeconds: 60 * 60 * 24 * 7,
   dbFile: resolveDbFile(process.env.DB_FILE),
+  geminiApiKey: process.env.GEMINI_API_KEY || "",
+  geminiModel: process.env.GEMINI_MODEL || "gemini-flash-latest",
+  geminiTimeoutMs: Number(process.env.GEMINI_TIMEOUT_MS) || 30000,
+  aiRequestsPerWindow: Number(process.env.AI_REQUESTS_PER_WINDOW) || 10,
+  aiWindowMs: 10 * 60 * 1000,
 };
 
 module.exports = config;
